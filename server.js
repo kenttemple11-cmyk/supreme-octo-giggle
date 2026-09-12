@@ -11,14 +11,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const TRN_API_KEY = process.env.TRN_API_KEY;
-const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 20000); // don't hammer upstream
+const PARSE_API_KEY = process.env.PARSE_API_KEY;
+// Parse.bot's hosted wrapper over rocketleague.tracker.network (see parse.bot/marketplace).
+// This endpoint id is specific to that marketplace listing; only change it if Parse.bot
+// tells you the API moved to a new id.
+const PARSE_BASE_URL = 'https://api.parse.bot/scraper/d0dcf8e8-3a72-4b21-bffb-8fa735257835/get_player_profile';
+// Free tier is 200 credits/month + 5 req/min — cache aggressively by default so a personal
+// dashboard doesn't burn the monthly quota in an afternoon. Override via .env if you're on a paid tier.
+const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 15 * 60 * 1000); // 15 min default
 const HISTORY_DIR = path.join(__dirname, 'data');
 const HISTORY_FILE = path.join(HISTORY_DIR, 'history.json');
 const MAX_SNAPSHOTS_PER_PLAYER = 500;
 
-if (!TRN_API_KEY) {
-  console.warn('[warn] TRN_API_KEY is not set. Copy .env.example to .env and add your key.');
+if (!PARSE_API_KEY) {
+  console.warn('[warn] PARSE_API_KEY is not set. Copy .env.example to .env and add your key.');
 }
 
 app.use(cors());
@@ -121,25 +127,36 @@ function historyKey(platform, identifier) {
   return `${platform}:${identifier.toLowerCase()}`;
 }
 
+const SUPPORTED_PLATFORMS = new Set(['epic', 'steam', 'xbox', 'psn']);
+
 app.get('/api/profile/:platform/:identifier', async (req, res) => {
   const { platform, identifier } = req.params;
   const wantRaw = req.query.raw === 'true' || req.query.raw === '1';
   const key = historyKey(platform, identifier);
 
+  if (!SUPPORTED_PLATFORMS.has(platform)) {
+    return res.status(400).json({
+      error: true,
+      message: `Unsupported platform "${platform}". Parse.bot's Tracker API supports: epic, steam, xbox, psn.`,
+    });
+  }
+
+  const forceRefresh = req.query.force === 'true' || req.query.force === '1';
+
   try {
     let upstreamJson;
     const cached = cache.get(key);
-    const fresh = cached && Date.now() - cached.ts < CACHE_TTL_MS;
+    const fresh = !forceRefresh && cached && Date.now() - cached.ts < CACHE_TTL_MS;
 
     if (fresh) {
       upstreamJson = cached.data;
     } else {
-      const url = `https://public-api.tracker.gg/v2/rocket-league/standard/profile/${encodeURIComponent(
-        platform
-      )}/${encodeURIComponent(identifier)}`;
+      const url = `${PARSE_BASE_URL}?platform=${encodeURIComponent(platform)}&username=${encodeURIComponent(
+        identifier
+      )}`;
 
       const upstream = await fetch(url, {
-        headers: { 'TRN-Api-Key': TRN_API_KEY },
+        headers: { 'X-API-Key': PARSE_API_KEY },
       });
 
       if (!upstream.ok) {
@@ -149,11 +166,11 @@ app.get('/api/profile/:platform/:identifier', async (req, res) => {
           status: upstream.status,
           message:
             upstream.status === 404
-              ? 'Player not found. Check the platform and exact handle/ID.'
-              : upstream.status === 403
-              ? 'Forbidden — check your TRN_API_KEY and app approval status.'
+              ? 'Player not found. Check the platform and exact handle.'
+              : upstream.status === 401 || upstream.status === 403
+              ? 'Auth error — check your PARSE_API_KEY.'
               : upstream.status === 429
-              ? 'Rate limited by Tracker Network. Slow down polling.'
+              ? 'Rate limited or out of monthly credits on Parse.bot. Slow down polling or check your usage at parse.bot.'
               : `Upstream error (${upstream.status})`,
           upstreamBody: body?.slice(0, 500),
         });

@@ -195,7 +195,7 @@ h1 {
   white-space: nowrap;
 }
 
-.debug-btn, .remove-btn {
+.refresh-btn, .debug-btn, .remove-btn {
   background: transparent;
   border: 1px solid var(--line);
   color: var(--muted);
@@ -205,7 +205,7 @@ h1 {
   cursor: pointer;
 }
 
-.debug-btn:hover, .remove-btn:hover { color: var(--text); border-color: var(--muted); }
+.refresh-btn:hover, .debug-btn:hover, .remove-btn:hover { color: var(--text); border-color: var(--muted); }
 
 .card-error {
   background: rgba(239, 81, 105, 0.1);

@@ -20,12 +20,13 @@
       </div>
 
       <div class="poll-control">
-        <label for="pollRate">Refresh every</label>
+        <label for="pollRate">Auto-refresh</label>
         <select id="pollRate">
-          <option value="15000">15s</option>
-          <option value="30000" selected>30s</option>
-          <option value="60000">60s</option>
-          <option value="120000">2m</option>
+          <option value="0" selected>Off (manual only)</option>
+          <option value="900000">Every 15m</option>
+          <option value="1800000">Every 30m</option>
+          <option value="3600000">Every 1h</option>
+          <option value="10800000">Every 3h</option>
         </select>
       </div>
     </header>
@@ -35,13 +36,12 @@
         <option value="steam">Steam</option>
         <option value="epic">Epic</option>
         <option value="psn">PlayStation</option>
-        <option value="xbl">Xbox</option>
-        <option value="switch">Switch</option>
+        <option value="xbox">Xbox</option>
       </select>
       <input id="identifier" type="text" placeholder="Exact handle, SteamID64, or vanity name" autocomplete="off" required />
       <button type="submit">Track player</button>
     </form>
-    <p class="hint">Steam accepts a vanity name or SteamID64. Epic/PSN/Xbox need the exact display name.</p>
+    <p class="hint">Steam accepts a vanity name or SteamID64. Epic/PSN/Xbox need the exact display name. Use the refresh button on each card, or turn on auto-refresh above — the free API tier has a limited monthly quota, so wide intervals go further.</p>
 
     <div id="empty" class="empty">
       <p>No players tracked yet. Add one above to see live MMR, tier, and session deltas.</p>
@@ -59,6 +59,7 @@
         </div>
         <div class="card-actions">
           <span class="updated"></span>
+          <button class="refresh-btn" title="Refresh now">↻</button>
           <button class="debug-btn" title="View raw API response">raw</button>
           <button class="remove-btn" title="Stop tracking">✕</button>
         </div>

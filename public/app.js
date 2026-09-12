@@ -68,6 +68,10 @@ function buildCard(entry) {
   node.querySelector('.platform-badge').textContent = entry.platform;
   node.querySelector('.handle').textContent = entry.identifier;
 
+  node.querySelector('.refresh-btn').addEventListener('click', () => {
+    refreshEntry(entry, { force: true });
+  });
+
   node.querySelector('.debug-btn').addEventListener('click', () => {
     window.open(
       `/api/profile/${encodeURIComponent(entry.platform)}/${encodeURIComponent(entry.identifier)}?raw=true`,
@@ -179,15 +183,16 @@ function renderPlaylists(container, profile, history, prevProfile) {
   });
 }
 
-async function refreshEntry(entry) {
+async function refreshEntry(entry, { force = false } = {}) {
   const key = keyFor(entry);
   const card = cardEls.get(key) || buildCard(entry);
   const errorEl = card.querySelector('.card-error');
 
   try {
-    const res = await fetch(
-      `/api/profile/${encodeURIComponent(entry.platform)}/${encodeURIComponent(entry.identifier)}`
-    );
+    const url = `/api/profile/${encodeURIComponent(entry.platform)}/${encodeURIComponent(entry.identifier)}${
+      force ? '?force=true' : ''
+    }`;
+    const res = await fetch(url);
     const json = await res.json();
 
     if (json.error) {
@@ -216,7 +221,9 @@ function refreshAll() {
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   const rate = Number(pollRateSelect.value);
-  pollTimer = setInterval(refreshAll, rate);
+  if (rate > 0) {
+    pollTimer = setInterval(refreshAll, rate);
+  }
 }
 
 addForm.addEventListener('submit', (e) => {
