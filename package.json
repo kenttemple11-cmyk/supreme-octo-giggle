@@ -1,0 +1,17 @@
+{
+  "name": "rl-mmr-tracker",
+  "version": "1.0.0",
+  "description": "Live Rocket League MMR tracker/state viewer using the Tracker Network API",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  }
+}
